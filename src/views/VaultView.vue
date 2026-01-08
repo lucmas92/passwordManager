@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { supabase } from '@/services/supabase'
 import { CryptoService } from '@/services/crypto.service'
 import { useVaultStore } from '@/stores/vault.store'
@@ -15,14 +15,30 @@ interface VaultItemDecrypted {
   url?: string
 }
 
-const vaultStore = useVaultStore()
 const authStore = useAuthStore()
+const vaultStore = useVaultStore()
+
+const searchQuery = ref('')
 
 const timeoutOptions = [1, 3, 5, 10] // minuti configurabili
 
 const loading = ref(true)
 const error = ref<string | null>(null)
 const items = ref<VaultItemDecrypted[]>([])
+
+const filteredItems = computed(() => {
+  if (!items.value) return []
+  if (!searchQuery.value) return items.value
+
+  const query = searchQuery.value.toLowerCase()
+  return items.value.filter((item: VaultItemDecrypted) => {
+    return (
+      item.title.toLowerCase().includes(query) ||
+      item.username.toLowerCase().includes(query) ||
+      (item.url?.toLowerCase().includes(query) ?? false)
+    )
+  })
+})
 
 async function loadVault() {
   try {
@@ -133,10 +149,17 @@ onMounted(loadVault)
     <div v-if="!loading && items.length === 0" class="text-zinc-400">
       Nessuna credenziale salvata.
     </div>
-
+    <div class="mb-4">
+      <input
+        v-model="searchQuery"
+        type="text"
+        placeholder="Cerca..."
+        class="w-full px-4 py-2 rounded bg-zinc-900 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-blue-600 text-zinc-100"
+      />
+    </div>
     <!-- VAULT LIST -->
     <div class="grid gap-4">
-      <div v-for="item in items" :key="item.id" class="bg-zinc-800 rounded-xl p-4 shadow">
+      <div v-for="item in filteredItems" :key="item.id" class="bg-zinc-800 rounded-xl p-4 shadow">
         <div class="flex justify-between items-start">
           <div>
             <h2 class="font-semibold text-lg">{{ item.title }}</h2>
