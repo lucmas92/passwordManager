@@ -116,6 +116,16 @@ onMounted(loadVault)
       <button @click="openNew" class="btn-primary">+ Nuova</button>
 
       <div class="flex items-center gap-4">
+        <!-- Toggle lock on visibility -->
+        <label class="flex items-center gap-2 text-sm text-zinc-200 cursor-pointer">
+          <input
+            type="checkbox"
+            v-model="vaultStore.lockOnVisibilityChange"
+            class="w-4 h-4 accent-emerald-500"
+          />
+          Lock on tab hidden
+        </label>
+
         <!-- Countdown -->
         <div v-if="vaultStore.remainingSeconds > 0" class="text-sm text-zinc-400">
           Auto-lock in {{ Math.floor(vaultStore.remainingSeconds / 60) }}m

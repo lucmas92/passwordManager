@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { CryptoService } from '@/services/crypto.service'
 import { useAuthStore } from './auth.store'
+import router from '@/router'
 
 let inactivityTimer: ReturnType<typeof setTimeout> | null = null
 let countdownInterval: ReturnType<typeof setInterval> | null = null
@@ -10,6 +11,7 @@ export const useVaultStore = defineStore('vault', {
     key: null as CryptoKey | null,
     timeoutMinutes: 5, // default, modificabile lato utente
     remainingSeconds: 0, // countdown visivo
+    lockOnVisibilityChange: false,
   }),
 
   actions: {
@@ -24,6 +26,7 @@ export const useVaultStore = defineStore('vault', {
       this.clearInactivityTimer()
       this.removeActivityListeners()
       this.remainingSeconds = 0
+      router.push('/login')
     },
 
     startInactivityTimer() {
@@ -65,11 +68,25 @@ export const useVaultStore = defineStore('vault', {
     registerActivityListeners() {
       const events = ['keydown', 'touchstart', 'touchmove']
       events.forEach((e) => window.addEventListener(e, this.resetTimer))
+
+      // Blocca il vault quando la tab diventa nascosta
+      document.addEventListener('visibilitychange', this.handleVisibilityChange)
     },
 
     removeActivityListeners() {
       const events = ['keydown', 'touchstart', 'touchmove']
       events.forEach((e) => window.removeEventListener(e, this.resetTimer))
+
+      document.removeEventListener('visibilitychange', this.handleVisibilityChange)
+    },
+
+    handleVisibilityChange() {
+      if (this.lockOnVisibilityChange && document.hidden) {
+        console.log('Vault bloccato: tab nascosta/minimizzata')
+        this.lock()
+        useAuthStore().logout()
+        alert('Vault bloccato perché la finestra non è attiva!')
+      }
     },
 
     setTimeoutMinutes(minutes: number) {

@@ -46,4 +46,31 @@ export class CryptoService {
 
     return new TextDecoder().decode(plain)
   }
+
+  static async generatePassword(
+    length = 16,
+    options?: {
+      uppercase?: boolean
+      numbers?: boolean
+      symbols?: boolean
+    },
+  ): Promise<string> {
+    const lower = 'abcdefghijklmnopqrstuvwxyz'
+    const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    const nums = '0123456789'
+    const syms = '!@#$%^&*()-_=+[]{};:,.<>?'
+
+    let chars = lower
+    if (options?.uppercase ?? true) chars += upper
+    if (options?.numbers ?? true) chars += nums
+    if (options?.symbols ?? true) chars += syms
+
+    let password = ''
+    const array = new Uint32Array(length)
+    window.crypto.getRandomValues(array) // crypto-safe random
+    for (let i = 0; i < length; i++) {
+      password += chars[array[i]! % chars.length]
+    }
+    return password
+  }
 }

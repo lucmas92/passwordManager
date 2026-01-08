@@ -6,6 +6,7 @@ import { useVaultStore } from '@/stores/vault.store'
 import type { VaultItemPlain } from '@/types/database'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import zxcvbn from 'zxcvbn'
+import { CryptoService } from '@/services/crypto.service.ts'
 
 const props = defineProps<{
   modelValue: boolean
@@ -64,6 +65,14 @@ watch(
   { immediate: true },
 )
 
+async function fillRandomPassword() {
+  form.value.password = await CryptoService.generatePassword(16, {
+    uppercase: true,
+    numbers: true,
+    symbols: true,
+  })
+}
+
 async function save() {
   const encrypted = await encryptItem(form.value, vaultStore.key!)
 
@@ -85,13 +94,21 @@ async function save() {
 
 <template>
   <div v-if="modelValue" class="fixed inset-0 bg-black/60 flex items-center justify-center">
-    <div class="bg-zinc-800 p-6 rounded-xl w-full max-w-md space-y-4">
+    <div class="bg-zinc-800 p-6 rounded-xl w-full flex flex-col gap-2 max-w-md space-y-4">
       <h2 class="text-lg font-semibold">{{ item ? 'Modifica' : 'Nuova' }} Credenziale</h2>
 
-      <input v-model="form.title" placeholder="Titolo" class="input" />
-      <input v-model="form.username" placeholder="Username" class="input" />
-      <input v-model="form.password" placeholder="Password" class="input" />
-
+      <input v-model="form.title" placeholder="Titolo" class="input py-2 px-1" />
+      <input v-model="form.username" placeholder="Username" class="input py-2 px-1" />
+      <div class="relative flex gap-2">
+        <input v-model="form.password" placeholder="Password" class="input flex-1 py-2 px-1" />
+        <button
+          type="button"
+          @click="fillRandomPassword"
+          class="px-3 flex items-center bg-zinc-700 text-zinc-100 rounded-r hover:bg-zinc-600"
+        >
+          Genera
+        </button>
+      </div>
       <div class="mt-2">
         <div class="w-full bg-zinc-700 h-2 rounded">
           <div
@@ -102,7 +119,7 @@ async function save() {
         </div>
         <p class="text-xs text-zinc-400 mt-1">{{ passwordStrengthText }}</p>
       </div>
-      <input v-model="form.url" placeholder="URL" class="input" />
+      <input v-model="form.url" placeholder="URL" class="input py-2 px-1" />
 
       <div class="flex justify-end gap-2">
         <button @click="$emit('update:modelValue', false)" class="btn">Annulla</button>
