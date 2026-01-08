@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
+import zxcvbn from 'zxcvbn'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -10,6 +11,36 @@ const email = ref('')
 const password = ref('') // Supabase account password
 const masterPassword = ref('') // Zero-Knowledge
 const confirmMaster = ref('')
+
+const passwordStrengthScore = ref(0)
+const passwordStrengthText = ref('')
+
+watch(masterPassword, (val: string) => {
+  if (val) {
+    const result = zxcvbn(val)
+    passwordStrengthScore.value = result.score // 0-4
+    passwordStrengthText.value = result.feedback.warning || result.feedback.suggestions[0] || ''
+  } else {
+    passwordStrengthScore.value = 0
+    passwordStrengthText.value = ''
+  }
+})
+
+const strengthColor = computed(() => {
+  switch (passwordStrengthScore.value) {
+    case 0:
+    case 1:
+      return 'bg-red-500'
+    case 2:
+      return 'bg-yellow-500'
+    case 3:
+      return 'bg-emerald-400'
+    case 4:
+      return 'bg-green-500'
+    default:
+      return 'bg-zinc-600'
+  }
+})
 
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -90,6 +121,16 @@ async function register() {
             class="w-full px-4 py-2 rounded bg-zinc-900 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-emerald-600"
           />
           <p class="text-xs text-zinc-500 mt-1">Usata per cifrare il vault. Non recuperabile.</p>
+        </div>
+        <div class="mt-2">
+          <div class="w-full bg-zinc-700 h-2 rounded">
+            <div
+              class="h-2 rounded transition-all duration-300"
+              :class="strengthColor"
+              :style="{ width: passwordStrengthScore * 25 + '%' }"
+            ></div>
+          </div>
+          <p class="text-xs text-zinc-400 mt-1">{{ passwordStrengthText }}</p>
         </div>
 
         <!-- CONFIRM MASTER -->
