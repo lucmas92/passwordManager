@@ -10,11 +10,24 @@ export interface VaultItemPlain {
   url?: string
 }
 
-export interface VaultItemEncrypted {
+export interface VaultItemData {
   id?: string
-  user_id?: string
-  encrypted_title: string
-  encrypted_username: string
-  encrypted_password: string
-  encrypted_url?: string
+  title: string
+  username?: string
+  password?: string
+  url?: string
+  notes?: string
+  fields?: Record<string, string> // campi personalizzati
+  tags?: string[] // categorie / tag
+  created_at?: string
+  updated_at?: string
+  attachments?: string[] // future: Base64 o riferimento a blob criptato
+}
+
+export interface VaultItemEncrypted {
+  id: string
+  user_id: string
+  encrypted_data: string // AES-GCM Base64 blob contenente tutto VaultItemData
+  created_at: string
+  updated_at: string
 }

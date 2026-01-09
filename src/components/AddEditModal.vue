@@ -1,130 +1,238 @@
+<template>
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/85">
+    <div class="bg-zinc-900 rounded-lg p-6 w-full max-w-lg relative">
+      <h2 class="text-xl font-bold text-zinc-100 mb-4">
+        {{ editData ? t('item.editEntry') : t('item.addEntry') }}
+      </h2>
+
+      <form @submit.prevent="handleSubmit" class="space-y-3">
+        <!-- Title -->
+        <div>
+          <label class="block text-zinc-200 mb-1">{{ t('item.title') }}</label>
+          <input
+            v-model="form.title"
+            type="text"
+            class="w-full px-3 py-2 rounded bg-zinc-800 border border-zinc-700 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            required
+          />
+        </div>
+
+        <!-- Username -->
+        <div>
+          <label class="block text-zinc-200 mb-1">{{ t('item.username') }}</label>
+          <input
+            v-model="form.username"
+            type="text"
+            class="w-full px-3 py-2 rounded bg-zinc-800 border border-zinc-700avbel"
+          />
+        </div>
+        <div>
+          <label class="block text-zinc-200 mb-1">{{ t('item.password') }}</label>
+          <div class="relative">
+            <input
+              :type="showPassword ? 'text' : 'password'"
+              v-model="form.password"
+              class="w-full px-3 py-2 rounded bg-zinc-800 border border-zinc-700 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-600 flex"
+            />
+            <button
+              type="button"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400"
+              @click="showPassword = !showPassword"
+            >
+              <Eye :size="25" v-if="!showPassword" />
+              <EyeOff :size="25" v-else />
+            </button>
+          </div>
+        </div>
+
+        <!-- URL -->
+        <div>
+          <label class="block text-zinc-200 mb-1">{{ t('item.url') }}</label>
+          <input
+            v-model="form.url"
+            type="url"
+            class="w-full px-3 py-2 rounded bg-zinc-800 border border-zinc-700 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+        </div>
+
+        <!-- Notes -->
+        <div>
+          <label class="block text-zinc-200 mb-1">{{ t('item.notes') }}</label>
+          <textarea
+            v-model="form.notes"
+            class="w-full px-3 py-2 rounded bg-zinc-800 border border-zinc-700 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+          ></textarea>
+        </div>
+
+        <!-- Campi personalizzati -->
+        <div v-for="(val, key) in form.fields" :key="key" class="flex gap-2 items-end">
+          <div class="flex-1">
+            <label class="block text-zinc-200 mb-1">{{ key }}</label>
+            <input
+              v-model="form.fields[key]"
+              type="text"
+              class="w-full px-3 py-2 rounded bg-zinc-800 border border-zinc-700 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            />
+          </div>
+          <button
+            type="button"
+            class="h-6 w-6 bg-red-600 rounded-full hover:bg-red-500 text-white flex items-center justify-center mb-3"
+            @click="removeField(key)"
+          >
+            <CircleX />
+          </button>
+        </div>
+
+        <button
+          type="button"
+          class="px-3 py-1 bg-blue-600 rounded hover:bg-blue-700 text-white"
+          @click="addField"
+        >
+          {{ t('item.addField') }}
+        </button>
+
+        <!-- Tags -->
+        <div>
+          <label class="block text-zinc-200 mb-1">{{ t('item.tags') }}</label>
+          <input
+            v-model="tagsInput"
+            @keydown.enter.prevent="addTag"
+            type="text"
+            :placeholder="t('item.tags.placeholder')"
+            class="w-full px-3 py-2 rounded bg-zinc-800 border border-zinc-700 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+          <div class="flex gap-2 flex-wrap mt-1">
+            <span
+              v-for="tag in form.tags"
+              :key="tag"
+              class="bg-blue-600 text-xs px-2 py-1 rounded flex items-center gap-1"
+            >
+              {{ tag }}
+              <button type="button" @click="removeTag(tag)" class="text-white text-xs">×</button>
+            </span>
+          </div>
+        </div>
+
+        <!-- Bottoni -->
+        <div class="flex justify-end gap-2 mt-4">
+          <button
+            type="button"
+            class="px-4 py-2 bg-zinc-700 rounded hover:bg-zinc-600 text-zinc-100"
+            @click="$emit('close')"
+          >
+            {{ t('form.cancel') }}
+          </button>
+          <button
+            type="submit"
+            class="px-4 py-2 bg-emerald-600 rounded hover:bg-emerald-700 text-white"
+          >
+            {{ t('form.save') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</template>
+
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { supabase } from '@/services/supabase'
-import { encryptItem } from '@/services/vault.service'
+import { ref, watch, reactive } from 'vue'
 import { useVaultStore } from '@/stores/vault.store'
-import type { VaultItemPlain } from '@/types/database'
-import { useAuthStore } from '@/stores/auth.store.ts'
-import zxcvbn from 'zxcvbn'
-import { CryptoService } from '@/services/crypto.service.ts'
+import { CryptoService } from '@/services/crypto.service'
+import { useI18n } from 'vue-i18n'
+import { Eye, EyeOff, CircleX } from 'lucide-vue-next'
 
-const props = defineProps<{
-  modelValue: boolean
-  item?: VaultItemPlain & { id?: string }
-}>()
+interface VaultForm {
+  title: string
+  username: string
+  password: string
+  url: string
+  notes: string
+  fields: Record<string, string>
+  tags: string[]
+}
 
-const emit = defineEmits(['update:modelValue', 'saved'])
-
+const { t } = useI18n()
 const vaultStore = useVaultStore()
 
-const passwordStrengthScore = ref(0)
-const passwordStrengthText = ref('')
+const props = defineProps<{ editData: any }>()
+const emit = defineEmits(['close', 'saved'])
 
-const form = ref<VaultItemPlain>({
+const showPassword = ref(false)
+const tagsInput = ref('')
+
+const form = reactive<VaultForm>({
   title: '',
   username: '',
   password: '',
   url: '',
+  notes: '',
+  fields: {},
+  tags: [],
 })
 
-const strengthColor = computed(() => {
-  switch (passwordStrengthScore.value) {
-    case 0:
-    case 1:
-      return 'bg-red-500'
-    case 2:
-      return 'bg-yellow-500'
-    case 3:
-      return 'bg-emerald-400'
-    case 4:
-      return 'bg-green-500'
-    default:
-      return 'bg-zinc-600'
-  }
-})
-
+// Popola il form se è in edit mode
 watch(
-  () => form.value.password,
+  () => props.editData,
   (val) => {
     if (val) {
-      const result = zxcvbn(val)
-      passwordStrengthScore.value = result.score
-      passwordStrengthText.value = result.feedback.warning || result.feedback.suggestions[0] || ''
+      form.title = val.title || ''
+      form.username = val.username || ''
+      form.password = val.password || ''
+      form.url = val.url || ''
+      form.notes = val.notes || ''
+      form.fields = { ...(val.fields || {}) }
+      form.tags = [...(val.tags || [])]
     } else {
-      passwordStrengthScore.value = 0
-      passwordStrengthText.value = ''
+      form.title = ''
+      form.username = ''
+      form.password = ''
+      form.url = ''
+      form.notes = ''
+      form.fields = {}
+      form.tags = []
     }
-  },
-)
-
-watch(
-  () => props.item,
-  (val) => {
-    if (val) form.value = { ...val }
   },
   { immediate: true },
 )
 
-async function fillRandomPassword() {
-  form.value.password = await CryptoService.generatePassword(16, {
-    uppercase: true,
-    numbers: true,
-    symbols: true,
-  })
+// Gestione campi personalizzati
+function addField() {
+  const key = prompt(t('item.fieldName'))
+  if (key) form.fields[key] = ''
+}
+function removeField(key: string) {
+  delete form.fields[key]
 }
 
-async function save() {
-  const encrypted = await encryptItem(form.value, vaultStore.key!)
-
-  if (props.item?.id) {
-    await supabase.from('vault_items').update(encrypted).eq('id', props.item.id)
-  } else {
-    const authStore = useAuthStore()
-
-    await supabase.from('vault_items').insert({
-      ...encrypted,
-      user_id: authStore.user!.id,
-    })
+// Gestione tag
+function addTag() {
+  if (tagsInput.value.trim() && !form.tags.includes(tagsInput.value.trim())) {
+    form.tags.push(tagsInput.value.trim())
+    tagsInput.value = ''
   }
+}
+function removeTag(tag: string) {
+  form.tags = form.tags.filter((t) => t !== tag)
+}
 
-  emit('saved')
-  emit('update:modelValue', false)
+// Submit form
+async function handleSubmit() {
+  if (!vaultStore.key) {
+    alert(t('noCryptoKey'))
+    return
+  }
+  const payload = JSON.stringify({ ...form })
+  const encryptedData = await CryptoService.encrypt(payload, vaultStore.key)
+  try {
+    if (props.editData?.id) {
+      await vaultStore.updateItem(props.editData.id, encryptedData)
+    } else {
+      await vaultStore.addItem(encryptedData)
+    }
+    emit('saved')
+  } catch (err) {
+    console.error(err)
+    alert(t('form.errorSaving'))
+  }
 }
 </script>
-
-<template>
-  <div v-if="modelValue" class="fixed inset-0 bg-black/60 flex items-center justify-center">
-    <div class="bg-zinc-800 p-6 rounded-xl w-full flex flex-col gap-2 max-w-md space-y-4">
-      <h2 class="text-lg font-semibold">{{ item ? 'Modifica' : 'Nuova' }} Credenziale</h2>
-
-      <input v-model="form.title" placeholder="Titolo" class="input py-2 px-1" />
-      <input v-model="form.username" placeholder="Username" class="input py-2 px-1" />
-      <div class="relative flex gap-2">
-        <input v-model="form.password" placeholder="Password" class="input flex-1 py-2 px-1" />
-        <button
-          type="button"
-          @click="fillRandomPassword"
-          class="px-3 flex items-center bg-zinc-700 text-zinc-100 rounded-r hover:bg-zinc-600"
-        >
-          Genera
-        </button>
-      </div>
-      <div class="mt-2">
-        <div class="w-full bg-zinc-700 h-2 rounded">
-          <div
-            class="h-2 rounded transition-all duration-300"
-            :class="strengthColor"
-            :style="{ width: passwordStrengthScore * 25 + '%' }"
-          ></div>
-        </div>
-        <p class="text-xs text-zinc-400 mt-1">{{ passwordStrengthText }}</p>
-      </div>
-      <input v-model="form.url" placeholder="URL" class="input py-2 px-1" />
-
-      <div class="flex justify-end gap-2">
-        <button @click="$emit('update:modelValue', false)" class="btn">Annulla</button>
-        <button @click="save" class="btn-primary">Salva</button>
-      </div>
-    </div>
-  </div>
-</template>

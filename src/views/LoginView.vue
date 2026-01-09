@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useVaultStore } from '@/stores/vault.store'
 import { supabase } from '@/services/supabase'
 import { Eye, EyeOff } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -16,6 +17,8 @@ const masterPassword = ref('supabase8')
 
 const showAccountPassword = ref(false)
 const showMasterPassword = ref(false)
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -49,7 +52,8 @@ async function login() {
   } catch (e: any) {
     console.error(e)
 
-    error.value = e?.message || 'Credenziali non valide o Master Password errata'
+    error.value = t('auth.invalidCredentials')
+    console.error(e?.message || 'Credenziali non valide o Master Password errata')
 
     // sicurezza: cleanup completo
     vaultStore.lock()
@@ -61,8 +65,8 @@ async function login() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-zinc-900 text-zinc-100">
-    <div class="w-full max-w-md bg-zinc-800 rounded-2xl p-8 shadow-xl">
+  <div class="min-h-screen flex items-center justify-center">
+    <div class="w-full bg-zinc-700 max-w-md rounded-2xl p-8 shadow-xl">
       <!-- HEADER -->
       <h1 class="text-2xl font-semibold text-center mb-6">🔐 Unlock Vault</h1>
 
@@ -75,7 +79,7 @@ async function login() {
       <form @submit.prevent="login" class="space-y-4">
         <!-- EMAIL -->
         <div>
-          <label class="block text-sm mb-1 text-zinc-400"> Email </label>
+          <label class="block text-sm mb-1 text-zinc-400"> {{ $t('auth.email') }} </label>
           <input
             v-model="email"
             type="email"
@@ -87,7 +91,7 @@ async function login() {
 
         <!-- ACCOUNT PASSWORD -->
         <div>
-          <label class="block text-sm mb-1 text-zinc-400"> Password Account </label>
+          <label class="block text-sm mb-1 text-zinc-400"> {{ $t('auth.passwordAccount') }} </label>
           <div class="relative">
             <input
               v-model="password"
@@ -111,7 +115,7 @@ async function login() {
 
         <!-- MASTER PASSWORD -->
         <div>
-          <label class="block text-sm mb-1 text-zinc-400"> Master Password </label>
+          <label class="block text-sm mb-1 text-zinc-400"> {{ $t('auth.masterPassword') }} </label>
           <div class="relative">
             <input
               v-model="masterPassword"
@@ -131,7 +135,7 @@ async function login() {
               <EyeOff v-else class="w-5 h-5" />
             </button>
           </div>
-          <p class="text-xs text-zinc-500 mt-1">Non viene mai inviata al server</p>
+          <p class="text-xs text-zinc-500 mt-1">{{ $t('auth.masterPasswordInfo') }}</p>
         </div>
 
         <!-- SUBMIT -->
@@ -140,15 +144,17 @@ async function login() {
           :disabled="loading"
           class="w-full py-2 rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <span v-if="!loading">Unlock</span>
-          <span v-else>Deriving key…</span>
+          <span v-if="!loading">{{ $t('auth.unlock') }}</span>
+          <span v-else>{{ $t('auth.derivingKey') }}</span>
         </button>
       </form>
 
       <!-- FOOTER -->
       <div class="mt-6 text-center text-sm text-zinc-400">
-        Non hai un account?
-        <router-link to="/register" class="text-blue-400 hover:underline"> Registrati </router-link>
+        {{ $t('auth.noAccount') }}
+        <router-link to="/register" class="text-blue-400 hover:underline">
+          {{ $t('auth.register') }}
+        </router-link>
       </div>
     </div>
   </div>
