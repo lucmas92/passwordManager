@@ -1,48 +1,60 @@
 <template>
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/85">
-    <div class="bg-zinc-900 rounded-lg p-6 w-full max-w-lg relative">
+    <div class="bg-zinc-600 rounded-lg p-6 w-full max-w-lg relative">
       <h2 class="text-xl font-bold text-zinc-100 mb-4">
         {{ editData ? t('item.editEntry') : t('item.addEntry') }}
       </h2>
 
-      <form @submit.prevent="handleSubmit" class="space-y-3">
+      <form @submit.prevent="handleSubmit" class="space-y-3 text-sm">
         <!-- Title -->
-        <div>
-          <label class="block text-zinc-200 mb-1">{{ t('item.title') }}</label>
-          <input
-            v-model="form.title"
-            type="text"
-            class="w-full px-3 py-2 rounded bg-zinc-800 border border-zinc-700 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
-            required
-          />
-        </div>
+        <div class="flex justify-between gap-3">
+          <div class="w-full">
+            <label class="block text-xs text-zinc-200 mb-1">{{ t('item.title') }}</label>
+            <input
+              v-model="form.title"
+              type="text"
+              class="w-full px-3 py-1 bg-zinc-800 text-zinc-100 focus:outline-none focus:ring-0"
+              required
+            />
+          </div>
 
-        <!-- Username -->
-        <div>
-          <label class="block text-zinc-200 mb-1">{{ t('item.username') }}</label>
-          <input
-            v-model="form.username"
-            type="text"
-            class="w-full px-3 py-2 rounded bg-zinc-800 border border-zinc-700avbel"
-          />
+          <!-- Username -->
+          <div class="w-full">
+            <label class="block text-xs text-zinc-200 mb-1">{{ t('item.username') }}</label>
+            <input
+              v-model="form.username"
+              type="text"
+              class="w-full px-3 py-1 bg-zinc-800 text-zinc-100 focus:outline-none focus:ring-0"
+            />
+          </div>
         </div>
         <div>
           <label class="block text-zinc-200 mb-1">{{ t('item.password') }}</label>
-          <div class="relative">
-            <input
-              :type="showPassword ? 'text' : 'password'"
-              v-model="form.password"
-              class="w-full px-3 py-2 rounded bg-zinc-800 border border-zinc-700 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-600 flex"
-            />
-            <button
-              type="button"
-              class="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400"
-              @click="showPassword = !showPassword"
-            >
-              <Eye :size="25" v-if="!showPassword" />
-              <EyeOff :size="25" v-else />
+          <div class="flex items-center gap-2">
+            <div class="relative flex-1">
+              <input
+                :type="showPassword ? 'text' : 'password'"
+                v-model="form.password"
+                autocomplete="off"
+                class="w-full px-3 py-1 bg-zinc-800 text-zinc-100 focus:outline-none focus:ring-0"
+              />
+              <button
+                type="button"
+                class="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400"
+                @click="showPassword = !showPassword"
+              >
+                <Eye :size="25" v-if="!showPassword" />
+                <EyeOff :size="25" v-else />
+              </button>
+            </div>
+            <button type="button" @click="generateRandomPassword">
+              {{ t('item.fillRandomPassword') }}
             </button>
           </div>
+        </div>
+
+        <div class="mt-2" v-if="form.password.trim().length > 0">
+          <PasswordStrength :password="form.password" />
         </div>
 
         <!-- URL -->
@@ -51,7 +63,7 @@
           <input
             v-model="form.url"
             type="url"
-            class="w-full px-3 py-2 rounded bg-zinc-800 border border-zinc-700 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            class="w-full px-3 py-1 bg-zinc-800 text-zinc-100 focus:outline-none focus:ring-0"
           />
         </div>
 
@@ -60,36 +72,52 @@
           <label class="block text-zinc-200 mb-1">{{ t('item.notes') }}</label>
           <textarea
             v-model="form.notes"
-            class="w-full px-3 py-2 rounded bg-zinc-800 border border-zinc-700 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            rows="2"
+            class="w-full px-3 py-1 bg-zinc-800 text-zinc-100 focus:outline-none focus:ring-0 resize-none"
           ></textarea>
         </div>
 
-        <!-- Campi personalizzati -->
-        <div v-for="(val, key) in form.fields" :key="key" class="flex gap-2 items-end">
-          <div class="flex-1">
-            <label class="block text-zinc-200 mb-1">{{ key }}</label>
-            <input
-              v-model="form.fields[key]"
-              type="text"
-              class="w-full px-3 py-2 rounded bg-zinc-800 border border-zinc-700 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
-            />
+        <section class="border-t border-b border-zinc-700 py-1 space-y-2">
+          <span class="text-xs text-zinc-400">{{ t('item.customFields') }}</span>
+          <!-- Campi personalizzati -->
+          <div v-for="(val, key) in form.fields" :key="key" class="flex gap-2 items-end">
+            <div class="flex-1">
+              <label class="block text-zinc-200 mb-1">{{ key }}</label>
+              <input
+                v-model="form.fields[key]"
+                type="text"
+                class="w-full px-3 py-1 bg-zinc-800 text-zinc-100 focus:outline-none focus:ring-0"
+              />
+            </div>
+            <button
+              type="button"
+              class="h-6 w-6 bg-red-600 rounded-full hover:bg-red-500 text-white flex items-center justify-center mb-1"
+              @click="removeField(key)"
+            >
+              <CircleX />
+            </button>
           </div>
-          <button
-            type="button"
-            class="h-6 w-6 bg-red-600 rounded-full hover:bg-red-500 text-white flex items-center justify-center mb-3"
-            @click="removeField(key)"
-          >
-            <CircleX />
-          </button>
-        </div>
+          <div class="relative px-4 flex flex-col items-center group">
+            <button
+              type="button"
+              @click="addField"
+              class="px-2 py-1 rounded text-emerald-500 hover:bg-emerald-500 hover:text-white"
+            >
+              <Plus />
+            </button>
 
-        <button
-          type="button"
-          class="px-3 py-1 bg-blue-600 rounded hover:bg-blue-700 text-white"
-          @click="addField"
-        >
-          {{ t('item.addField') }}
-        </button>
+            <div
+              class="absolute z-99 bottom-full mb-2 hidden group-hover:flex flex-col items-center"
+            >
+              <span
+                class="relative z-99 p-2 text-xs leading-none text-white whitespace-no-wrap bg-gray-800 shadow-lg rounded-md"
+              >
+                {{ t('item.addField') }}
+              </span>
+              <div class="w-3 h-3 -mt-2 rotate-45 bg-gray-800"></div>
+            </div>
+          </div>
+        </section>
 
         <!-- Tags -->
         <div>
@@ -99,7 +127,7 @@
             @keydown.enter.prevent="addTag"
             type="text"
             :placeholder="t('item.tags.placeholder')"
-            class="w-full px-3 py-2 rounded bg-zinc-800 border border-zinc-700 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            class="w-full px-3 py-1 bg-zinc-800 text-zinc-100 focus:outline-none focus:ring-0"
           />
           <div class="flex gap-2 flex-wrap mt-1">
             <span
@@ -135,11 +163,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, reactive } from 'vue'
+import { ref, watch, reactive, onMounted } from 'vue'
 import { useVaultStore } from '@/stores/vault.store'
-import { CryptoService } from '@/services/crypto.service'
+import { CryptoService, generatePassword } from '@/services/crypto.service'
 import { useI18n } from 'vue-i18n'
-import { Eye, EyeOff, CircleX } from 'lucide-vue-next'
+import { Eye, EyeOff, CircleX, Plus } from 'lucide-vue-next'
+import PasswordStrength from '@/components/PasswordStrength.vue'
 
 interface VaultForm {
   title: string
@@ -157,7 +186,7 @@ const vaultStore = useVaultStore()
 const props = defineProps<{ editData: any }>()
 const emit = defineEmits(['close', 'saved'])
 
-const showPassword = ref(false)
+const showPassword = ref(true)
 const tagsInput = ref('')
 
 const form = reactive<VaultForm>({
@@ -215,6 +244,15 @@ function removeTag(tag: string) {
   form.tags = form.tags.filter((t) => t !== tag)
 }
 
+function generateRandomPassword() {
+  showPassword.value = true
+  form.password = generatePassword(16, {
+    uppercase: true,
+    numbers: true,
+    symbols: true,
+  })
+}
+
 // Submit form
 async function handleSubmit() {
   if (!vaultStore.key) {
@@ -229,10 +267,16 @@ async function handleSubmit() {
     } else {
       await vaultStore.addItem(encryptedData)
     }
-    emit('saved')
+    emit('saved', { ...form })
   } catch (err) {
     console.error(err)
     alert(t('form.errorSaving'))
   }
 }
+
+onMounted(() => {
+  setTimeout(() => {
+    showPassword.value = false
+  }, 100)
+})
 </script>

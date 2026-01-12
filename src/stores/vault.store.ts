@@ -5,13 +5,17 @@ import { useAuthStore } from './auth.store'
 import { CryptoService } from '@/services/crypto.service.ts'
 import router from '@/router'
 import type { VaultItemData, VaultItemEncrypted } from '@/types/database.ts'
+import { useI18n } from 'vue-i18n'
 
 export const useVaultStore = defineStore('vault', () => {
   const authStore = useAuthStore()
+  const { t } = useI18n()
 
   const items = ref<VaultItemData[]>([])
   const key = ref<CryptoKey | null>(null)
   const locked = ref(true)
+  const isProcessing = ref(false)
+  const error = ref<string>('')
 
   // Auto-lock
   const autoLockTimeout = ref(300) // default 5 min
@@ -21,11 +25,20 @@ export const useVaultStore = defineStore('vault', () => {
 
   // Inizializza vault (dopo login)
   async function unlock(masterPassword: string, salt: string) {
-    key.value = await CryptoService.deriveKey(masterPassword, salt)
-    locked.value = false
-    await fetchItems()
-    startAutoLock()
-    registerActivityListeners()
+    isProcessing.value = true
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 800))
+      key.value = await CryptoService.deriveKey(masterPassword, salt)
+      await fetchItems()
+      startAutoLock()
+      registerActivityListeners()
+      locked.value = false
+    } catch (err: any) {
+      console.error(err)
+      throw new Error(t('vault.unlockError'))
+    } finally {
+      isProcessing.value = false
+    }
   }
 
   // Lock vault (rimuove CryptoKey)
@@ -45,6 +58,7 @@ export const useVaultStore = defineStore('vault', () => {
       .from('vault_items')
       .select('*')
       .eq('user_id', authStore.user.id)
+      .order('created_at', { ascending: false })
 
     if (error) throw error
 
@@ -54,6 +68,8 @@ export const useVaultStore = defineStore('vault', () => {
       const decryptedData = await CryptoService.decrypt(item.encrypted_data, key.value!)
       decrypted.push({
         id: item.id!,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
         ...JSON.parse(decryptedData),
       })
     }
@@ -140,6 +156,8 @@ export const useVaultStore = defineStore('vault', () => {
     locked,
     autoLockTimeout,
     lockOnVisibilityChange,
+    isProcessing,
+    error,
     fetchItems,
     unlock, // ✅ ripristinata
     lock, // ✅ confermata

@@ -12,7 +12,7 @@ const messages = {
     'auth.derivingKey': 'Derivazione della chiave in corso...',
     'auth.noAccount': 'Non hai un account?',
     'auth.register': 'Registrati',
-    'auth.invalidCredentials': 'Credenziali non valide o Master Password errata',
+    'auth.invalidCredentials': 'Credenziali non valide',
 
     'vault.title': 'Il Mio Caveau',
     'vault.noEntries': 'Nessuna voce nel tuo caveau. Crea la tua prima voce!',
@@ -26,6 +26,7 @@ const messages = {
     'vault.autoLockIn': 'Blocco automatico in',
     'vault.back': 'Indietro',
     'vault.noSelectedItem': 'Nessuna voce selezionata',
+    'vault.unlockError': 'Errore durante lo sblocco del caveau',
 
     'item.url': 'URL',
     'item.notes': 'Note',
@@ -38,7 +39,9 @@ const messages = {
     'item.fieldName': 'Nome Campo',
     'item.addField': 'Aggiungi Campo Personalizzato',
     'item.tags': 'Tag',
-    'item.tags.placeholder': 'Premi invio per aggiungere tag',
+    'item.tags.placeholder': 'Scrivi e premi invio per aggiungere tag',
+    'item.customFields': 'Campi personalizzati',
+    'item.fillRandomPassword': 'Genera',
 
     'form.cancel': 'Annulla',
     'form.save': 'Salva',

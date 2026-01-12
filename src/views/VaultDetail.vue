@@ -3,7 +3,7 @@
     <!-- Visualizzazione dettagli -->
     <div class="space-y-4">
       <div class="flex items-center justify-between">
-        <h2 class="text-2xl font-semibold">{{ vault.title ?? 'Voce senza titolo' }}</h2>
+        <h2 class="text-2xl font-semibold">{{ localVault.title ?? 'Voce senza titolo' }}</h2>
         <div class="flex gap-2">
           <div class="relative flex flex-col items-center group">
             <button @click="toggleEdit" class="px-2 py-1 rounded hover:bg-zinc-600 text-zinc-100">
@@ -57,14 +57,14 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="font-medium text-sm text-gray-600">Username</label>
-          <div class="mt-1 text-lg">{{ vault.username ?? '-' }}</div>
+          <div class="mt-1 text-lg">{{ localVault.username ?? '-' }}</div>
         </div>
 
         <div>
           <label class="font-medium text-sm text-gray-600">Password</label>
           <div class="mt-1 flex items-center gap-3">
             <div class="text-lg font-mono w-full overflow-hidden whitespace-nowrap">
-              <span v-if="showPassword">{{ vault.password }}</span>
+              <span v-if="showPassword">{{ localVault.password }}</span>
               <span v-else>••••••••</span>
             </div>
             <button @click="showPassword = !showPassword" class="text-sm px-2 py-1">
@@ -72,20 +72,24 @@
               <EyeOff v-else />
             </button>
           </div>
+
+          <PasswordStrength v-if="localVault.password" :password="localVault.password" />
         </div>
 
-        <div v-if="vault.url">
+        <div v-if="localVault.url">
           <label class="font-medium text-sm text-gray-600">URL</label>
           <div class="mt-1">
-            <a :href="vault.url" target="_blank" class="text-blue-600 underline">{{ vault.url }}</a>
+            <a :href="localVault.url" target="_blank" class="text-blue-600 underline">{{
+              localVault.url
+            }}</a>
           </div>
         </div>
 
-        <div v-if="vault.tags && vault.tags.length">
+        <div v-if="localVault.tags && localVault.tags.length">
           <label class="font-medium text-sm text-gray-600">Tags</label>
           <div class="mt-1 flex flex-wrap gap-2">
             <span
-              v-for="(t, i) in vault.tags"
+              v-for="(t, i) in localVault.tags"
               :key="i"
               class="text-xs px-2 py-1 bg-gray-400 rounded"
               >{{ t }}</span
@@ -93,9 +97,9 @@
           </div>
         </div>
 
-        <div v-if="vault.notes" class="md:col-span-2">
+        <div v-if="localVault.notes" class="md:col-span-2">
           <label class="font-medium text-sm text-gray-600">Note</label>
-          <div class="mt-1 whitespace-pre-line">{{ vault.notes }}</div>
+          <div class="mt-1 whitespace-pre-line">{{ localVault.notes }}</div>
         </div>
 
         <div>
@@ -116,14 +120,21 @@
 
 <script setup lang="ts">
 import type { VaultItemData } from '@/types/database.ts'
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import AddEditModal from '@/components/AddEditModal.vue'
 import { Copy, Eye, EyeOff, Pencil, Trash } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
+import PasswordStrength from '@/components/PasswordStrength.vue'
 
 const props = defineProps<{
   vault: VaultItemData
 }>()
+
+const localVault = ref<VaultItemData>({} as VaultItemData)
+
+onMounted(() => {
+  localVault.value = { ...props.vault }
+})
 
 const emit = defineEmits<{
   (e: 'update', payload: VaultItemData): void
@@ -142,19 +153,20 @@ const tagsInput = ref((props.vault.tags && props.vault.tags.join(', ')) || '')
 watch(
   () => props.vault,
   (newV) => {
+    localVault.value = { ...props.vault }
     Object.assign(editItem, newV || {})
     tagsInput.value = (newV?.tags && newV.tags.join(', ')) || ''
   },
 )
 
 const formattedCreatedAt = computed(() => {
-  if (!props.vault?.createdAt) return '-'
-  return new Date(props.vault.createdAt).toLocaleString()
+  if (!props.vault?.created_at) return '-'
+  return new Date(props.vault.created_at).toLocaleString()
 })
 
 const formattedUpdatedAt = computed(() => {
-  if (!props.vault?.updatedAt) return '-'
-  return new Date(props.vault.updatedAt).toLocaleString()
+  if (!props.vault?.updated_at) return '-'
+  return new Date(props.vault.updated_at).toLocaleString()
 })
 
 function toggleEdit() {
@@ -168,18 +180,9 @@ function cancelEdit() {
   editMode.value = false
 }
 
-function saveEdit() {
-  // normalize tags
-  const tags = tagsInput.value
-    .split(',')
-    .map((t) => t.trim())
-    .filter((t) => t.length)
-  const updated: VaultItemData = {
-    ...props.vault,
-    ...editItem,
-    tags,
-  }
-  emit('update', updated)
+function saveEdit(updatedItem: VaultItemData) {
+  localVault.value = updatedItem
+  emit('update', updatedItem)
   editMode.value = false
 }
 
@@ -199,7 +202,8 @@ async function copyPassword() {
     await navigator.clipboard.writeText(pwd)
     // messaggio minimo
     alert('Password copiata negli appunti.')
-  } catch (e) {
+  } catch (e: any) {
+    console.error(e)
     // fallback
     const textarea = document.createElement('textarea')
     textarea.value = pwd
