@@ -27,6 +27,33 @@
         <!-- Countdown Auto-Lock -->
         <div class="mb-4 text-sm text-zinc-400">{{ t('vault.autoLockIn') }}: {{ countdown }}s</div>
       </div>
+
+      <!-- Export Button -->
+      <div class="flex items-center relative group">
+        <button
+          class="px-3 py-2 rounded bg-zinc-700 hover:bg-zinc-600 text-zinc-100 flex items-center gap-2"
+        >
+          <Download :size="18" />
+          Export
+        </button>
+        <!-- Dropdown menu -->
+        <div
+          class="absolute right-0 top-full mt-2 hidden group-hover:flex flex-col bg-zinc-800 border border-zinc-700 rounded shadow-lg z-50 min-w-[120px]"
+        >
+          <button
+            @click="exportData('json')"
+            class="px-4 py-2 text-left hover:bg-zinc-700 text-zinc-200 text-sm"
+          >
+            JSON
+          </button>
+          <button
+            @click="exportData('csv')"
+            class="px-4 py-2 text-left hover:bg-zinc-700 text-zinc-200 text-sm"
+          >
+            CSV
+          </button>
+        </div>
+      </div>
     </div>
     <div class="flex flex-1 overflow-hidden w-full">
       <aside
@@ -122,7 +149,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useI18n } from 'vue-i18n'
 import AddEditModal from '@/components/AddEditModal.vue'
 import type { VaultItemData } from '@/types/database.ts'
-import { ChevronLeft, Plus } from 'lucide-vue-next'
+import { ChevronLeft, Plus, Download } from 'lucide-vue-next'
 import VaultDetail from '@/views/VaultDetail.vue'
 import { useToastStore } from '@/stores/toast.ts'
 
@@ -242,5 +269,59 @@ async function handleModalSaved() {
   await vaultStore.fetchItems()
   showModal.value = false
   modalData.value = null
+}
+
+function exportData(format: 'json' | 'csv') {
+  if (
+    !confirm(
+      'ATTENZIONE: Il file esportato NON sarà cifrato! Chiunque potrà leggere le tue password. Vuoi procedere?',
+    )
+  ) {
+    return
+  }
+
+  let dataStr = ''
+  let mimeType = ''
+  let extension = ''
+
+  if (format === 'json') {
+    dataStr = JSON.stringify(vaultStore.items, null, 2)
+    mimeType = 'application/json'
+    extension = 'json'
+  } else if (format === 'csv') {
+    // CSV Header
+    const headers = ['Title', 'Username', 'Password', 'URL', 'Notes', 'Tags']
+    const rows = vaultStore.items.map((item) => {
+      const tags = item.tags ? item.tags.join(';') : ''
+      // Escape CSV fields
+      const escape = (text: string | undefined) => {
+        if (!text) return ''
+        return `"${text.replace(/"/g, '""')}"`
+      }
+      return [
+        escape(item.title),
+        escape(item.username),
+        escape(item.password),
+        escape(item.url),
+        escape(item.notes),
+        escape(tags),
+      ].join(',')
+    })
+    dataStr = [headers.join(','), ...rows].join('\n')
+    mimeType = 'text/csv'
+    extension = 'csv'
+  }
+
+  const blob = new Blob([dataStr], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `password-manager-export-${new Date().toISOString().slice(0, 10)}.${extension}`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+
+  toast.addToast('Esportazione completata. Proteggi il file scaricato!', 'warning')
 }
 </script>
