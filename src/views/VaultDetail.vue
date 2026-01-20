@@ -222,8 +222,20 @@ async function copyPassword() {
   }
   try {
     await navigator.clipboard.writeText(pwd)
-    // messaggio minimo
-    toast.addToast('Password copiata negli appunti.', 'info')
+    toast.addToast('Password copiata negli appunti. Verrà rimossa tra 30 secondi.', 'info')
+
+    setTimeout(async () => {
+      try {
+        // Controlla se la clipboard contiene ancora la password prima di cancellarla
+        const currentClipboard = await navigator.clipboard.readText()
+        if (currentClipboard === pwd) {
+          await navigator.clipboard.writeText('')
+          toast.addToast('Password rimossa dagli appunti per sicurezza.', 'info')
+        }
+      } catch (err) {
+        console.error('Impossibile pulire la clipboard:', err)
+      }
+    }, 30000) // 30 secondi
   } catch (e: any) {
     console.error(e)
     // fallback
@@ -236,6 +248,7 @@ async function copyPassword() {
     try {
       document.execCommand('copy')
       toast.addToast('Password copiata negli appunti.', 'info')
+      // Fallback cleanup non sempre possibile in modo affidabile senza API clipboard
     } finally {
       document.body.removeChild(textarea)
     }

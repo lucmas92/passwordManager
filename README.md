@@ -38,8 +38,12 @@ Per garantire che nessuno, nemmeno gli amministratori del database o il provider
     *   Le nuove password sicure generate per gli utenti.
     *   I Salt per la derivazione delle chiavi.
 
-### 4. Gestione Sicura dei Dati
+### 4. Gestione Sicura dei Dati e della Sessione
 *   **Approccio:** L'applicazione è strutturata per separare nettamente la logica di cifratura (`CryptoService`) dall'interfaccia utente. Le chiavi private non vengono mai salvate su disco o inviate via rete, ma risiedono solo nella memoria volatile del dispositivo dell'utente durante la sessione attiva.
+*   **Auto-Lock Intelligente:** Per mitigare i rischi legati all'accesso fisico non autorizzato al dispositivo sbloccato:
+    *   **Inattività:** Il vault si blocca automaticamente dopo un periodo di inattività configurabile (default 5 minuti), rimuovendo la chiave di decifrazione dalla memoria.
+    *   **Cambio Contesto:** È presente un meccanismo di blocco immediato se l'utente cambia scheda o minimizza il browser (configurabile), garantendo che i dati non rimangano esposti se l'utente si allontana momentaneamente.
+*   **Protezione Appunti (Clipboard):** Quando una password viene copiata, viene attivato un timer di sicurezza di 30 secondi, al termine del quale la password viene rimossa automaticamente dagli appunti per evitare incollaggi accidentali o accessi da parte di altre applicazioni.
 
 ## Setup del Progetto
 

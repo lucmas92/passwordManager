@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Esempio rigoroso: permette script solo dallo stesso dominio -->
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co;">
     <title>Vite App</title>
   </head>
   <body>

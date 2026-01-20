@@ -140,7 +140,7 @@ async function login() {
                 class="absolute inset-y-0 right-0 px-3 flex items-center text-zinc-400 hover:text-zinc-200"
                 aria-label="Mostra/Nascondi password account"
               >
-                <Eye v-if="!showAccountPassword" class="w-5 h-5" />
+                <Eye v-if="!showMasterPassword" class="w-5 h-5" />
                 <EyeOff v-else class="w-5 h-5" />
               </button>
             </div>
