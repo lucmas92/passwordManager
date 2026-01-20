@@ -1,47 +1,67 @@
-# passwordManager
+# Password Manager
 
-This template should help get you started developing with Vue 3 in Vite.
+Un gestore di password sicuro e moderno sviluppato con Vue 3, TypeScript e Supabase.
 
-## Recommended IDE Setup
+## Specifiche del Progetto
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+Il progetto è stato realizzato utilizzando un moderno stack tecnologico per garantire performance, manutenibilità e sicurezza:
 
-## Recommended Browser Setup
+*   **Frontend Framework:** Vue 3 (Composition API)
+*   **Build Tool:** Vite
+*   **Linguaggio:** TypeScript
+*   **State Management:** Pinia
+*   **UI/Styling:** Tailwind CSS
+*   **Backend & Database:** Supabase (PostgreSQL)
+*   **Routing:** Vue Router
+*   **Internationalization:** Vue I18n
+*   **Icone:** Lucide Vue
+*   **Analisi robustezza password:** zxcvbn
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+## Sfide Tecnologiche e Sicurezza
 
-## Type Support for `.vue` Imports in TS
+La sicurezza è stata la priorità principale nello sviluppo di questa applicazione. Per garantire la massima protezione dei dati sensibili degli utenti, sono state affrontate diverse sfide tecniche complesse.
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+### 1. Crittografia End-to-End (Client-Side Encryption)
+Per garantire che nessuno, nemmeno gli amministratori del database o il provider del servizio, possa accedere alle password salvate, è stata implementata una architettura **Zero-Knowledge**.
 
-## Customize configuration
+*   **Problema:** Memorizzare le password in chiaro o cifrate lato server espone i dati a rischi critici in caso di violazione del database (data breach).
+*   **Soluzione:** Tutte le password vengono cifrate direttamente nel browser dell'utente (lato client) prima di essere inviate a Supabase. Viene utilizzato l'algoritmo **AES-GCM a 256 bit**, uno standard industriale che garantisce sia la confidenzialità che l'integrità dei dati (autenticazione del messaggio).
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+### 2. Derivazione Sicura delle Chiavi (PBKDF2)
+*   **Problema:** Utilizzare direttamente la password dell'utente come chiave di cifratura è insicuro. Le password umane hanno spesso bassa entropia e sono vulnerabili ad attacchi a dizionario o rainbow table.
+*   **Soluzione:** Viene utilizzato l'algoritmo **PBKDF2** (Password-Based Key Derivation Function 2) con **SHA-256** e **100.000 iterazioni**. Questo processo, combinato con un **Salt** univoco, deriva una chiave crittografica robusta dalla Master Password dell'utente, rendendo computazionalmente onerosi e impraticabili gli attacchi di forza bruta.
 
-## Project Setup
+### 3. Generazione di Numeri Casuali Crittograficamente Sicuri (CSPRNG)
+*   **Problema:** Le funzioni pseudo-casuali standard dei linguaggi di programmazione (come `Math.random()`) non sono crittograficamente sicure. Se utilizzate per generare chiavi o IV, possono rendere prevedibile l'intera cifratura.
+*   **Soluzione:** L'applicazione utilizza esclusivamente l'API Web Crypto (`window.crypto.getRandomValues()`) per generare:
+    *   I **Vettori di Inizializzazione (IV)** a 12 byte per la cifratura AES-GCM, essenziali per garantire che lo stesso testo cifrato due volte produca output diversi.
+    *   Le nuove password sicure generate per gli utenti.
+    *   I Salt per la derivazione delle chiavi.
+
+### 4. Gestione Sicura dei Dati
+*   **Approccio:** L'applicazione è strutturata per separare nettamente la logica di cifratura (`CryptoService`) dall'interfaccia utente. Le chiavi private non vengono mai salvate su disco o inviate via rete, ma risiedono solo nella memoria volatile del dispositivo dell'utente durante la sessione attiva.
+
+## Setup del Progetto
+
+### Installazione Dipendenze
 
 ```sh
 npm install
 ```
 
-### Compile and Hot-Reload for Development
+### Avvio Server di Sviluppo
 
 ```sh
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
+### Build per Produzione
 
 ```sh
 npm run build
 ```
 
-### Lint with [ESLint](https://eslint.org/)
+### Linting e Formattazione
 
 ```sh
 npm run lint
