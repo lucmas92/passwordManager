@@ -30,7 +30,7 @@
     </div>
     <div class="flex flex-1 overflow-hidden w-full">
       <aside
-        class="w-full md:w-1/3 border-r flex-col flex"
+        class="w-full md:w-1/3 md:border-r flex-col flex"
         :class="{ 'hidden md:flex': selectedVault, flex: !selectedVault }"
       >
         <div class="flex justify-between items-center bg-zinc-800 border-b">
@@ -124,6 +124,7 @@ import AddEditModal from '@/components/AddEditModal.vue'
 import type { VaultItemData } from '@/types/database.ts'
 import { ChevronLeft, Plus } from 'lucide-vue-next'
 import VaultDetail from '@/views/VaultDetail.vue'
+import { useToastStore } from '@/stores/toast.ts'
 
 const { t } = useI18n()
 const vaultStore = useVaultStore()
@@ -134,6 +135,7 @@ const searchQuery = ref('')
 // Modal state
 const showModal = ref(false)
 const modalData = ref<any>(null)
+const toast = useToastStore()
 
 // Auto-lock countdown
 const countdown = ref(vaultStore.autoLockTimeout)
@@ -145,7 +147,7 @@ function startCountdown() {
   countdownInterval = window.setInterval(() => {
     countdown.value -= 1
     if (countdown.value <= 0) {
-      lockVault()
+      lockVault(true)
     }
   }, 1000)
 }
@@ -155,11 +157,15 @@ function stopCountdown() {
 }
 
 // Lock vault
-function lockVault() {
+function lockVault(timeExpired = false) {
   vaultStore.lock()
   authStore.logout()
   stopCountdown()
-  alert(t('vault.locked'))
+  if (timeExpired) {
+    toast.addToast(t('vault.autoLocked'), 'info')
+  } else {
+    toast.addToast(t('vault.lostVisibilityLocked'), 'info')
+  }
 }
 
 // Reset countdown on activity

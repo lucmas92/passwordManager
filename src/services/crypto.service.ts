@@ -18,7 +18,7 @@ export class CryptoService {
       ['deriveKey'],
     )
 
-    const key = await window.crypto.subtle.deriveKey(
+    return await window.crypto.subtle.deriveKey(
       {
         name: 'PBKDF2',
         salt: this.encoder.encode(salt),
@@ -30,8 +30,6 @@ export class CryptoService {
       true,
       ['encrypt', 'decrypt'],
     )
-
-    return key
   }
 
   /**

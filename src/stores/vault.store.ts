@@ -16,9 +16,10 @@ export const useVaultStore = defineStore('vault', () => {
   const locked = ref(true)
   const isProcessing = ref(false)
   const error = ref<string>('')
+  const locking = ref(false)
 
   // Auto-lock
-  const autoLockTimeout = ref(300) // default 5 min
+  const autoLockTimeout = ref(300)
   const lockOnVisibilityChange = ref(true)
 
   let autoLockTimer: number | undefined
@@ -27,7 +28,7 @@ export const useVaultStore = defineStore('vault', () => {
   async function unlock(masterPassword: string, salt: string) {
     isProcessing.value = true
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800))
+      await new Promise((resolve) => setTimeout(resolve, 400))
       key.value = await CryptoService.deriveKey(masterPassword, salt)
       await fetchItems()
       startAutoLock()
@@ -42,12 +43,15 @@ export const useVaultStore = defineStore('vault', () => {
   }
 
   // Lock vault (rimuove CryptoKey)
-  function lock() {
+  async function lock() {
+    locking.value = true
+    await new Promise((resolve) => setTimeout(resolve, 500))
     key.value = null
     locked.value = true
     stopAutoLock()
     removeActivityListeners()
     items.value = []
+    locking.value = false
     router.push('/login')
   }
 
@@ -146,7 +150,6 @@ export const useVaultStore = defineStore('vault', () => {
     if (document.hidden && lockOnVisibilityChange.value) {
       lock()
       authStore.logout()
-      alert('Vault bloccato perché la finestra non è attiva')
     }
   }
 
@@ -157,6 +160,7 @@ export const useVaultStore = defineStore('vault', () => {
     autoLockTimeout,
     lockOnVisibilityChange,
     isProcessing,
+    locking,
     error,
     fetchItems,
     unlock, // ✅ ripristinata

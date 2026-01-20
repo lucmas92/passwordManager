@@ -27,6 +27,9 @@ const messages = {
     'vault.back': 'Indietro',
     'vault.noSelectedItem': 'Nessuna voce selezionata',
     'vault.unlockError': 'Errore durante lo sblocco del caveau',
+    'vault.lostVisibilityLocked':
+      'Il caveau è stato bloccato a causa della perdita di visibilità della finestra',
+    'vault.autoLocked': 'Il caveau è stato bloccato automaticamente dopo un periodo di inattività',
 
     'item.url': 'URL',
     'item.notes': 'Note',

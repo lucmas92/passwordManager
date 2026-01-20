@@ -36,21 +36,6 @@
               <div class="w-3 h-3 -mt-2 rotate-45 bg-gray-800"></div>
             </div>
           </div>
-
-          <div class="relative flex flex-col items-center group">
-            <button @click="copyPassword" class="px-2 py-1 rounded hover:bg-zinc-600 text-zinc-100">
-              <Copy />
-            </button>
-
-            <div class="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center">
-              <span
-                class="relative z-10 p-2 text-xs leading-none text-white whitespace-no-wrap bg-gray-800 shadow-lg rounded-md"
-              >
-                {{ t('vault.copy') }}
-              </span>
-              <div class="w-3 h-3 -mt-2 rotate-45 bg-gray-800"></div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -61,7 +46,26 @@
         </div>
 
         <div>
-          <label class="font-medium text-sm text-gray-600">Password</label>
+          <div class="flex items-center">
+            <label class="font-medium text-sm text-gray-600">Password</label>
+            <div class="relative flex flex-col items-center group">
+              <button
+                @click="copyPassword"
+                class="px-2 py-1 rounded hover:bg-zinc-600 text-zinc-100"
+              >
+                <Copy :size="16" />
+              </button>
+
+              <div class="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center">
+                <span
+                  class="relative z-10 p-2 text-xs leading-none text-white whitespace-no-wrap bg-gray-800 shadow-lg rounded-md"
+                >
+                  {{ t('vault.copy') }}
+                </span>
+                <div class="w-3 h-3 -mt-2 rotate-45 bg-gray-800"></div>
+              </div>
+            </div>
+          </div>
           <div class="mt-1 flex items-center gap-3">
             <div class="text-lg font-mono w-full overflow-hidden whitespace-nowrap">
               <span v-if="showPassword">{{ localVault.password }}</span>
@@ -77,7 +81,23 @@
         </div>
 
         <div v-if="localVault.url">
-          <label class="font-medium text-sm text-gray-600">URL</label>
+          <div class="flex items-center">
+            <label class="font-medium text-sm text-gray-600">URL</label>
+            <div class="relative flex flex-col items-center group">
+              <button @click="copyUrl" class="px-2 py-1 rounded hover:bg-zinc-600 text-zinc-100">
+                <Copy :size="16" />
+              </button>
+
+              <div class="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center">
+                <span
+                  class="relative z-10 p-2 text-xs leading-none text-white whitespace-no-wrap bg-gray-800 shadow-lg rounded-md"
+                >
+                  {{ t('vault.copy') }}
+                </span>
+                <div class="w-3 h-3 -mt-2 rotate-45 bg-gray-800"></div>
+              </div>
+            </div>
+          </div>
           <div class="mt-1">
             <a :href="localVault.url" target="_blank" class="text-blue-600 underline">{{
               localVault.url
@@ -125,6 +145,7 @@ import AddEditModal from '@/components/AddEditModal.vue'
 import { Copy, Eye, EyeOff, Pencil, Trash } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import PasswordStrength from '@/components/PasswordStrength.vue'
+import { useToastStore } from '@/stores/toast.ts'
 
 const props = defineProps<{
   vault: VaultItemData
@@ -145,6 +166,7 @@ const { t } = useI18n()
 
 const editMode = ref(false)
 const showPassword = ref(false)
+const toast = useToastStore()
 
 const editItem = reactive<VaultItemData>({ ...props.vault } as VaultItemData)
 const tagsInput = ref((props.vault.tags && props.vault.tags.join(', ')) || '')
@@ -195,13 +217,13 @@ function confirmDelete() {
 async function copyPassword() {
   const pwd = props.vault?.password ?? ''
   if (!pwd) {
-    alert('Password vuota.')
+    toast.addToast('Password vuota', 'info')
     return
   }
   try {
     await navigator.clipboard.writeText(pwd)
     // messaggio minimo
-    alert('Password copiata negli appunti.')
+    toast.addToast('Password copiata negli appunti.', 'info')
   } catch (e: any) {
     console.error(e)
     // fallback
@@ -213,7 +235,35 @@ async function copyPassword() {
     textarea.select()
     try {
       document.execCommand('copy')
-      alert('Password copiata negli appunti.')
+      toast.addToast('Password copiata negli appunti.', 'info')
+    } finally {
+      document.body.removeChild(textarea)
+    }
+  }
+}
+
+async function copyUrl() {
+  const url = props.vault?.url ?? ''
+  if (!url) {
+    toast.addToast('Url vuota.', 'info')
+    return
+  }
+  try {
+    await navigator.clipboard.writeText(url)
+    // messaggio minimo
+    toast.addToast('Url copiata negli appunti.', 'info')
+  } catch (e: any) {
+    console.error(e)
+    // fallback
+    const textarea = document.createElement('textarea')
+    textarea.value = url
+    textarea.style.position = 'fixed'
+    textarea.style.opacity = '0'
+    document.body.appendChild(textarea)
+    textarea.select()
+    try {
+      document.execCommand('copy')
+      toast.addToast('Url copiata negli appunti.', 'info')
     } finally {
       document.body.removeChild(textarea)
     }
