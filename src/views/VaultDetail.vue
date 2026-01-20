@@ -132,6 +132,62 @@
           <div class="mt-1 text-sm text-gray-500">{{ formattedUpdatedAt }}</div>
         </div>
       </div>
+
+      <!-- History Section -->
+      <div class="mt-8 border-t border-zinc-700 pt-4">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-lg font-semibold">Cronologia Password</h3>
+          <button
+            @click="loadHistory"
+            class="text-sm text-blue-400 hover:underline"
+            v-if="!historyLoaded"
+          >
+            Carica cronologia
+          </button>
+        </div>
+
+        <div v-if="historyLoaded && historyItems.length === 0" class="text-sm text-gray-500">
+          Nessuna cronologia disponibile.
+        </div>
+
+        <ul v-if="historyLoaded && historyItems.length > 0" class="space-y-2">
+          <li
+            v-for="item in historyItems"
+            :key="item.id"
+            class="bg-zinc-800 p-3 rounded text-sm flex justify-between items-center"
+          >
+            <div>
+              <div class="font-mono text-zinc-300">
+                <span v-if="item.isVisible">{{ item.data.password }}</span>
+                <span v-else-if="item.data.password">••••••••</span>
+                <span v-else class="text-gray-500 italic">(Nessuna password)</span>
+              </div>
+              <div class="text-xs text-gray-500">
+                {{ new Date(item.created_at).toLocaleString() }}
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                @click="item.isVisible = !item.isVisible"
+                class="text-zinc-400 hover:text-white"
+                :title="item.isVisible ? 'Nascondi' : 'Mostra'"
+                v-if="item.data.password"
+              >
+                <Eye v-if="!item.isVisible" :size="14" />
+                <EyeOff v-else :size="14" />
+              </button>
+              <button
+                @click="copyHistoryPassword(item.data.password)"
+                class="text-zinc-400 hover:text-white"
+                title="Copia password precedente"
+                v-if="item.data.password"
+              >
+                <Copy :size="14" />
+              </button>
+            </div>
+          </li>
+        </ul>
+      </div>
     </div>
 
     <AddEditModal v-if="editMode" :edit-data="editItem" @saved="saveEdit" @close="cancelEdit" />
@@ -139,22 +195,34 @@
 </template>
 
 <script setup lang="ts">
-import type { VaultItemData } from '@/types/database.ts'
+import type { VaultItemData, VaultHistoryItem } from '@/types/database.ts'
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import AddEditModal from '@/components/AddEditModal.vue'
 import { Copy, Eye, EyeOff, Pencil, Trash } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import PasswordStrength from '@/components/PasswordStrength.vue'
 import { useToastStore } from '@/stores/toast.ts'
+import { useVaultStore } from '@/stores/vault.store.ts'
 
 const props = defineProps<{
   vault: VaultItemData
 }>()
 
+// Local interface for UI state
+interface HistoryItemUI extends VaultHistoryItem {
+  isVisible: boolean
+}
+
 const localVault = ref<VaultItemData>({} as VaultItemData)
+const historyItems = ref<HistoryItemUI[]>([])
+const historyLoaded = ref(false)
+
+const vaultStore = useVaultStore()
 
 onMounted(() => {
   localVault.value = { ...props.vault }
+  historyLoaded.value = false
+  historyItems.value = []
 })
 
 const emit = defineEmits<{
@@ -178,6 +246,8 @@ watch(
     localVault.value = { ...props.vault }
     Object.assign(editItem, newV || {})
     tagsInput.value = (newV?.tags && newV.tags.join(', ')) || ''
+    historyLoaded.value = false
+    historyItems.value = []
   },
 )
 
@@ -206,6 +276,8 @@ function saveEdit(updatedItem: VaultItemData) {
   localVault.value = updatedItem
   emit('update', updatedItem)
   editMode.value = false
+  // Reset history so it can be reloaded with the new entry
+  historyLoaded.value = false
 }
 
 function confirmDelete() {
@@ -280,6 +352,29 @@ async function copyUrl() {
     } finally {
       document.body.removeChild(textarea)
     }
+  }
+}
+
+async function loadHistory() {
+  if (!props.vault.id) return
+  try {
+    const items = await vaultStore.fetchHistory(props.vault.id)
+    historyItems.value = items.map((i) => ({ ...i, isVisible: false }))
+    historyLoaded.value = true
+  } catch (e) {
+    console.error(e)
+    toast.addToast('Errore nel caricamento della cronologia', 'error')
+  }
+}
+
+async function copyHistoryPassword(pwd?: string) {
+  if (!pwd) return
+  try {
+    await navigator.clipboard.writeText(pwd)
+    toast.addToast('Password precedente copiata.', 'info')
+  } catch (e) {
+    console.error(e)
+    toast.addToast('Errore copia', 'error')
   }
 }
 </script>

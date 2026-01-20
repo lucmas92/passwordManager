@@ -4,7 +4,12 @@ import { supabase } from '@/services/supabase'
 import { useAuthStore } from './auth.store'
 import { CryptoService } from '@/services/crypto.service.ts'
 import router from '@/router'
-import type { VaultItemData, VaultItemEncrypted } from '@/types/database.ts'
+import type {
+  VaultItemData,
+  VaultItemEncrypted,
+  VaultHistoryEncrypted,
+  VaultHistoryItem,
+} from '@/types/database.ts'
 import { useI18n } from 'vue-i18n'
 
 export const useVaultStore = defineStore('vault', () => {
@@ -96,6 +101,28 @@ export const useVaultStore = defineStore('vault', () => {
 
   // Aggiorna item esistente
   async function updateItem(id: string, encryptedData: string) {
+    // Prima recupera la versione corrente per salvarla nella history
+    const { data: currentItem, error: fetchError } = await supabase
+      .from('vault_items')
+      .select('encrypted_data')
+      .eq('id', id)
+      .single()
+
+    if (fetchError) throw fetchError
+
+    // Salva nella history
+    if (currentItem) {
+      const { error: historyError } = await supabase.from('vault_history').insert([
+        {
+          vault_item_id: id,
+          encrypted_data: currentItem.encrypted_data,
+        },
+      ])
+
+      if (historyError) console.error('Failed to save history:', historyError)
+    }
+
+    // Aggiorna l'item
     const { data, error } = await supabase
       .from('vault_items')
       .update({ encrypted_data: encryptedData })
@@ -114,6 +141,37 @@ export const useVaultStore = defineStore('vault', () => {
     const { error } = await supabase.from('vault_items').delete().eq('id', id)
     if (error) throw error
     items.value = items.value.filter((i) => i.id !== id)
+  }
+
+  // Fetch history per un item
+  async function fetchHistory(itemId: string): Promise<VaultHistoryItem[]> {
+    if (!key.value) return []
+
+    const { data, error } = await supabase
+      .from('vault_history')
+      .select('*')
+      .eq('vault_item_id', itemId)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    const decryptedHistory: VaultHistoryItem[] = []
+
+    for (const item of data as VaultHistoryEncrypted[]) {
+      try {
+        const decryptedData = await CryptoService.decrypt(item.encrypted_data, key.value)
+        decryptedHistory.push({
+          id: item.id,
+          vault_item_id: item.vault_item_id,
+          created_at: item.created_at,
+          data: JSON.parse(decryptedData),
+        })
+      } catch (e) {
+        console.error('Failed to decrypt history item', e)
+      }
+    }
+
+    return decryptedHistory
   }
 
   // Auto-lock countdown
@@ -168,6 +226,7 @@ export const useVaultStore = defineStore('vault', () => {
     addItem,
     updateItem,
     deleteItem,
+    fetchHistory,
     resetAutoLock,
   }
 })

@@ -31,3 +31,17 @@ export interface VaultItemEncrypted {
   created_at: string
   updated_at: string
 }
+
+export interface VaultHistoryEncrypted {
+  id: string
+  vault_item_id: string
+  encrypted_data: string
+  created_at: string
+}
+
+export interface VaultHistoryItem {
+  id: string
+  vault_item_id: string
+  data: VaultItemData
+  created_at: string
+}

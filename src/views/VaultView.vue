@@ -322,6 +322,6 @@ function exportData(format: 'json' | 'csv') {
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
 
-  toast.addToast('Esportazione completata. Proteggi il file scaricato!', 'warning')
+  toast.addToast('Esportazione completata. Proteggi il file scaricato!', 'info')
 }
 </script>

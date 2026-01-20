@@ -11,9 +11,9 @@ const router = useRouter()
 const authStore = useAuthStore()
 const vaultStore = useVaultStore()
 
-const email = ref('ilmassiluca@gmail.com')
-const password = ref('supabase')
-const masterPassword = ref('supabase8')
+const email = ref('il.massiluca@gmail.com')
+const password = ref('123456')
+const masterPassword = ref('123456')
 
 const showAccountPassword = ref(false)
 const showMasterPassword = ref(false)
